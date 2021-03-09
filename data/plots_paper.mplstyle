@@ -1,0 +1,12 @@
+axes.titlesize : 45
+axes.labelsize : 30
+xtick.labelsize : 30
+ytick.labelsize : 30
+legend.fontsize : 35
+figure.figsize : 24, 12
+lines.linewidth : 3
+lines.markersize : 25
+lines.markerfacecolor : None
+lines.markeredgewidth : 3
+legend.loc : upper right
+legend.borderpad : 0.2

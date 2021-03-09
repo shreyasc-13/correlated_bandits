@@ -1,0 +1,8 @@
+.DS_Store
+data/ml-1m
+data/goodreads_*
+data/plots
+plot_arrays/*
+preproc/genres
+preproc/movies
+preproc/books
