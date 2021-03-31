@@ -18,10 +18,14 @@ def movielens_preproc():
     '''
     Add metadata and store it as a dataframe
     '''
+    # Add headers
+    ratings_cols = 'UserID::MovieID::Rating::Timestamp'.split('::')
+    movies_cols = 'MovieID::Title::Genres'.split('::')
+    users_cols = 'UserID::Gender::Age::Occupation::Zip-code'.split('::')
     #Read data
-    ratings = pd.read_csv('../data/ml-1m/ratings.dat', sep= '::', engine= 'python')
-    movies = pd.read_csv('../data/ml-1m/movies.dat', sep= '::', engine= 'python')
-    users = pd.read_csv('../data/ml-1m/users.dat', sep = '::', engine= 'python')
+    ratings = pd.read_csv('../data/ml-1m/ratings.dat', sep= '::', engine= 'python', names=ratings_cols)
+    movies = pd.read_csv('../data/ml-1m/movies.dat', sep= '::', engine= 'python', names=movies_cols)
+    users = pd.read_csv('../data/ml-1m/users.dat', sep = '::', engine= 'python', names=users_cols)
 
     #Randomly assign one genre out of multiple to each movie
     gs = movies['Genres'].tolist()
@@ -130,7 +134,7 @@ def genre_data_process():
     #Test data true means
     true_means = np.zeros(18)
     for genre in range(18):
-        d = test_data_id[test_data_id['genre_Col'] == genre]
+        d = test_data_id[test_data_id['genre_col'] == genre]
         true_means[genre] = np.mean(d['Rating'])
 
     pickle.dump(true_means, open('genres/true_means_test', 'wb'))
