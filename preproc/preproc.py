@@ -137,7 +137,7 @@ def genre_data_process():
 
 def movie_train_test_split(train_test_ratio=0.5):
 
-    data = pd.read_pickle('movies/data_with_id')
+    data = pd.read_pickle('genres/data_with_id')
 
     #pick top 50 movies with most data
     movie_counts = data['MovieID'].value_counts().to_dict()
@@ -183,7 +183,7 @@ def movie_data_process():
         movie_tables[table_movie] = -np.ones((5,50))
 
         for rating in range(1,6):
-            users = set(train_data[(train_data['Movie_Assigned_ID'] == table_movie) & \
+            users = set(train_data[(train_data['movie_col'] == table_movie) & \
                                       (train_data['Rating'] == rating)]['UserID'])
 
             movie_tables[table_movie][:,table_movie] = np.arange(1,6) #Initialize the table reference column
