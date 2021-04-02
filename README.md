@@ -36,6 +36,9 @@ T               :   Number of rounds (horizon)
 p               :   Fraction of conditional expectation table entries to mask
 pad_val         :   Padding value for the conditional expectation table entries
 ```
+Example:<br>
+`python3 c_algos.py --exp genre --num_iterations 1 --T 5000 --p 0.1 --padval 0.1`
+
 The script saves plots of the generated results in a folder <tt>plot_arrays</tt>.
 
 ## Results
