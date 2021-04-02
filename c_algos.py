@@ -164,7 +164,7 @@ class algs:
             for t in range(T):
 
                 #add to set \ell for arms with pulls >t/K
-                bool_ell = pulls >= (float(t)/numArms)
+                bool_ell = pulls >= (float(t - 1)/numArms)
 
                 max_mu_hat = np.max(empReward[bool_ell])
 
@@ -207,10 +207,10 @@ class algs:
                 empReward[k_t] = sumReward[k_t]/float(pulls[k_t])
 
                 #Pseudo-reward updates
-                pseudoRewards = tables[k_t][reward-1,:] #(zero-indexed)
+                pseudoRewards = tables[k_t][reward-1, :] #(zero-indexed)
 
-                sumPseudoReward[:,k_t] = sumPseudoReward[:,k_t] + pseudoRewards
-                empPseudoReward[:,k_t] = np.divide(sumPseudoReward[:,k_t], float(pulls[k_t]))
+                sumPseudoReward[:, k_t] = sumPseudoReward[:, k_t] + pseudoRewards
+                empPseudoReward[:, k_t] = np.divide(sumPseudoReward[:, k_t], float(pulls[k_t]))
 
                 #Diagonal elements of pseudorewards
                 empPseudoReward[np.arange(numArms), np.arange(numArms)] = empReward
@@ -262,7 +262,7 @@ class algs:
             for t in range(T):
 
                 #add to set \ell for arms with pulls >t/K
-                bool_ell = TSC_pulls >= (float(t)/numArms)
+                bool_ell = TSC_pulls >= (float(t - 1)/numArms)
 
                 max_mu_hat = np.max(TSC_empReward[bool_ell])
 
