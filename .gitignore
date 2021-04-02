@@ -6,3 +6,5 @@ plot_arrays/*
 preproc/genres
 preproc/movies
 preproc/books
+*.zip
+*.idea/*
