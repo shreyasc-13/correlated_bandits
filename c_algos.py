@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import operator
+import argparse
+import sys
 import matplotlib.pyplot as plt
 plt.style.use('data/plots_paper.mplstyle')
+import pathlib
+
 
 class algs:
     def __init__(self, exp='genre', p=0.0, padval=0.0):
@@ -24,8 +28,8 @@ class algs:
 
     def generate_sample(self, arm):
 
-        d = self.test_data[test_data[f'{self.exp_name}_col'] == arm]
-        reward = d['Rating'].sample(n=1, replace = True)
+        d = self.test_data[self.test_data[f'{self.exp_name}_col'] == arm]
+        reward = d['rating'].sample(n=1, replace = True)
 
         return reward
 
@@ -109,7 +113,7 @@ class algs:
                     numPulls[t] += 1
                     assert numPulls[t] == 1
 
-                    reward = generate_sample(t)
+                    reward = self.generate_sample(t)
                     empReward[t] = reward
 
                     if t != 0:
@@ -121,7 +125,7 @@ class algs:
                 next_arm = np.argmax(thompson)
 
                 #Generate reward, update pulls and empirical reward
-                reward = generate_sample( next_arm )
+                reward = self.generate_sample( next_arm )
                 empReward[next_arm] = (empReward[next_arm]*numPulls[next_arm] + reward)/(numPulls[next_arm] + 1)
                 numPulls[next_arm] = numPulls[next_arm] + 1
 
@@ -160,7 +164,7 @@ class algs:
             for t in range(T):
 
                 #add to set \ell for arms with pulls >t/K
-                bool_ell = pulls >= (float(t)/numArms)
+                bool_ell = pulls >= (float(t - 1)/numArms)
 
                 max_mu_hat = np.max(empReward[bool_ell])
 
@@ -189,24 +193,24 @@ class algs:
                     k_t = t %numArms
                 elif len(comp_set)==0:
                     #UCB for empty comp set
-                    k_t = max(Index.iteritems(), key=operator.itemgetter(1))[0]
+                    k_t = max(Index.items(), key=operator.itemgetter(1))[0]
                 else:
                     comp_Index = {ind: Index[ind] for ind in comp_set}
-                    k_t = max(comp_Index.iteritems(), key=operator.itemgetter(1))[0]
+                    k_t = max(comp_Index.items(), key=operator.itemgetter(1))[0]
 
                 pulls[k_t] = pulls[k_t] + 1
 
-                reward = generate_sample(k_t)
+                reward = self.generate_sample(k_t)
 
                 #Update \mu_{k_t}
                 sumReward[k_t] = sumReward[k_t] + reward
                 empReward[k_t] = sumReward[k_t]/float(pulls[k_t])
 
                 #Pseudo-reward updates
-                pseudoRewards = tables[k_t][reward-1,:] #(zero-indexed)
+                pseudoRewards = tables[k_t][reward-1, :] #(zero-indexed)
 
-                sumPseudoReward[:,k_t] = sumPseudoReward[:,k_t] + pseudoRewards
-                empPseudoReward[:,k_t] = np.divide(sumPseudoReward[:,k_t], float(pulls[k_t]))
+                sumPseudoReward[:, k_t] = sumPseudoReward[:, k_t] + pseudoRewards
+                empPseudoReward[:, k_t] = np.divide(sumPseudoReward[:, k_t], float(pulls[k_t]))
 
                 #Diagonal elements of pseudorewards
                 empPseudoReward[np.arange(numArms), np.arange(numArms)] = empReward
@@ -258,7 +262,7 @@ class algs:
             for t in range(T):
 
                 #add to set \ell for arms with pulls >t/K
-                bool_ell = TSC_pulls >= (float(t)/numArms)
+                bool_ell = TSC_pulls >= (float(t - 1)/numArms)
 
                 max_mu_hat = np.max(TSC_empReward[bool_ell])
 
@@ -286,26 +290,26 @@ class algs:
                 if t < numArms:
                     k_t = t #%numArms
                 else:
-                    #Thompson Sampling
-                    thompson = ThompsonSample(TSC_empReward, TSC_pulls, beta)
+                    # Thompson Sampling
+                    thompson = self.ThompsonSample(TSC_empReward, TSC_pulls, beta)
                     comp_values = {ind: thompson[ind] for ind in comp_set}
-                    k_t = max(comp_values.iteritems(), key=operator.itemgetter(1))[0]
+                    k_t = max(comp_values.items(), key=operator.itemgetter(1))[0]
 
                 TSC_pulls[k_t] = TSC_pulls[k_t] + 1
 
-                reward = generate_sample(k_t)
+                reward = self.generate_sample(k_t)
 
-                #Update \mu_{k_t}
+                # Update \mu_{k_t}
                 TSC_sumReward[k_t] = TSC_sumReward[k_t] + reward
                 TSC_empReward[k_t] = TSC_sumReward[k_t]/float(TSC_pulls[k_t])
 
-                #Pseudo-reward updates
-                TSC_pseudoRewards = tables[k_t][reward-1,:] #(zero-indexed)
+                # Pseudo-reward updates
+                TSC_pseudoRewards = tables[k_t][reward-1, :] #(zero-indexed)
 
-                TSC_sumPseudoReward[:,k_t] = TSC_sumPseudoReward[:,k_t] + TSC_pseudoRewards
-                TSC_empPseudoReward[:,k_t] = np.divide(TSC_sumPseudoReward[:,k_t], float(TSC_pulls[k_t]))
+                TSC_sumPseudoReward[:, k_t] = TSC_sumPseudoReward[:, k_t] + TSC_pseudoRewards
+                TSC_empPseudoReward[:, k_t] = np.divide(TSC_sumPseudoReward[:, k_t], float(TSC_pulls[k_t]))
 
-                #Regret calculation
+                # Regret calculation
                 if t == 0:
                     tsc_regret[t] = true_means_test[optArm] - true_means_test[k_t]
                 else:
@@ -322,44 +326,41 @@ class algs:
         avg_cucb_regret = self.C_UCB(num_iterations, T)
         avg_cts_regret = self.C_TS(num_iterations, T)
 
-        #mean cumulative regret
-        self.plot_av_ucb = np.mean(avg_ucb_regret, axis = 0)
-        self.plot_av_ts = np.mean(avg_ts_regret, axis = 0)
+        # mean cumulative regret
+        self.plot_av_ucb = np.mean(avg_ucb_regret, axis=0)
+        self.plot_av_ts = np.mean(avg_ts_regret, axis=0)
         self.plot_av_cucb = np.mean(avg_cucb_regret, axis=0)
         self.plot_av_cts = np.mean(avg_cts_regret, axis=0)
 
-        #std dev over runs
-        self.plot_std_ucb = np.sqrt(np.var(avg_ucb_regret, axis = 0))
-        self.plot_std_ts = np.sqrt(np.var(avg_ts_regret, axis = 0))
+        # std dev over runs
+        self.plot_std_ucb = np.sqrt(np.var(avg_ucb_regret, axis=0))
+        self.plot_std_ts = np.sqrt(np.var(avg_ts_regret, axis=0))
         self.plot_std_cucb = np.sqrt(np.var(avg_cucb_regret, axis=0))
         self.plot_std_cts = np.sqrt(np.var(avg_cts_regret, axis=0))
 
         self.save_data()
 
-
     def edit_data(self):
 
         if self.exp_name == 'genre':
-            #code only masks values as done in the paper
+            # code only masks values as done in the paper
             genre_tables = pd.read_pickle(f'preproc/{self.exp_name}s/genre_tables_train.pkl')
             p = self.p
             for genre in range(18):
                 for row in range(genre_tables[genre].shape[0]):
                     row_len = int(genre_tables[genre].shape[1])
-                    genre_tables[genre][row][np.random.choice(np.arange(row_len), \
-                                                              size= int(p*row_len),\
-                                                             replace = False)] = 5.
-            #restore reference columns
+                    genre_tables[genre][row][np.random.choice(np.arange(row_len), size=int(p*row_len), replace=False)] = 5.
+            # restore reference columns
             for genre in range(18):
                 genre_tables[genre][:, genre] = np.arange(1,6)
 
             self.tables = genre_tables
 
         elif self.exp_name == 'movie':
-            #code only pads entries as done in the paper
+            # code only pads entries as done in the paper
             movie_tables = pd.read_pickle(f'preproc/{self.exp_name}s/movie_tables_train.pkl')
             pad_val = self.padval
-            for movie in range(50): #top 50 movies picked in preproc
+            for movie in range(50): # top 50 movies picked in preproc
                 movie_tables[movie] += pad_val
                 movie_tables[movie][movie_tables[movie] > 5] = 5.
                 movie_tables[movie][:,movie] = np.arange(1,6)
@@ -370,12 +371,11 @@ class algs:
             book_tables = pd.read_pickle(f'preproc/{self.exp_name}s/book_tables_train.pkl')
             p = self.p
             pad_val = self.padval
-            for book in range(25): #top 25 books picked in preproc
+            for book in range(25): # top 25 books picked in preproc
                 for row in range(book_tables[book].shape[0]):
                     row_len = int(book_tables[book].shape[1])
-                    book_tables[book][row][np.random.choice(np.arange(row_len), \
-                                                              size= int(p*row_len),\
-                                                             replace = False)] = 5.
+                    book_tables[book][row][np.random.choice(np.arange(row_len), size= int(p*row_len),
+                                                            replace=False)] = 5.
 
                 book_tables[book] += pad_val
                 book_tables[book][book_tables[book] > 5] = 5.
@@ -385,52 +385,58 @@ class algs:
             self.tables = book_tables
 
     def save_data(self):
-
-        algs = ['ucb', 'ts', 'cucb', 'cts']
-        for alg in algs:
-            np.save(f'plot_arrays/{self.exp_name}s/plot_av_{alg}_p{self.p:.2f}_pad{self.padval:.2f}', getattr(self, f'plot_av_{alg}'))
-            np.save(f'plot_arrays/{self.exp_name}s/plot_std_{alg}_p{self.p:.2f}_pad{self.padval:.2f}', getattr(self, f'plot_std_{alg}'))
-
+        algorithms = ['ucb', 'ts', 'cucb', 'cts']
+        pathlib.Path(f'plot_arrays/{self.exp_name}s/').mkdir(parents=False, exist_ok=True)
+        for alg in algorithms:
+            np.save(f'plot_arrays/{self.exp_name}s/plot_av_{alg}_p{self.p:.2f}_pad{self.padval:.2f}',
+                    getattr(self, f'plot_av_{alg}'))
+            np.save(f'plot_arrays/{self.exp_name}s/plot_std_{alg}_p{self.p:.2f}_pad{self.padval:.2f}',
+                    getattr(self, f'plot_std_{alg}'))
 
     def plot(self):
-
         spacing = 400
-        #Means
-        plt.plot(range(0,5000)[::spacing], self.plot_av_ucb[::spacing], label='UCB', color='red', marker='+')
-        plt.plot(range(0,5000)[::spacing], self.plot_av_ts[::spacing], label='TS', color='yellow', marker='o')
-        plt.plot(range(0,5000)[::spacing], self.plot_av_cucb[::spacing], label='C-UCB', color='blue', marker='^')
-        plt.plot(range(0,5000)[::spacing], self.plot_av_cts[::spacing], label='C-TS', color='black', marker='x')
-        #Confidence bounds
-        plt.fill_between(range(0,5000)[::spacing], (self.plot_av_ucb + self.plot_std_ucb)[::spacing], (self.plot_av_ucb - self.plot_std_ucb)[::spacing], alpha=0.3, facecolor='r')
-        plt.fill_between(range(0,5000)[::spacing], (self.plot_av_ts + self.plot_std_ts)[::spacing], (self.plot_av_ts - self.plot_std_ts)[::spacing], alpha=0.3, facecolor='y')
-        plt.fill_between(range(0,5000)[::spacing], (self.plot_av_cucb + self.plot_std_cucb)[::spacing], (self.plot_av_cucb - self.plot_std_cucb)[::spacing], alpha=0.3, facecolor='b')
-        plt.fill_between(range(0,5000)[::spacing], (self.plot_av_cts + self.plot_std_cts)[::spacing], (self.plot_av_cts - self.plot_std_cts)[::spacing], alpha=0.3, facecolor='k')
-
+        # Means
+        plt.plot(range(0, 5000)[::spacing], self.plot_av_ucb[::spacing], label='UCB', color='red', marker='+')
+        plt.plot(range(0, 5000)[::spacing], self.plot_av_ts[::spacing], label='TS', color='yellow', marker='o')
+        plt.plot(range(0, 5000)[::spacing], self.plot_av_cucb[::spacing], label='C-UCB', color='blue', marker='^')
+        plt.plot(range(0, 5000)[::spacing], self.plot_av_cts[::spacing], label='C-TS', color='black', marker='x')
+        # Confidence bounds
+        plt.fill_between(range(0, 5000)[::spacing], (self.plot_av_ucb + self.plot_std_ucb)[::spacing],
+                         (self.plot_av_ucb - self.plot_std_ucb)[::spacing], alpha=0.3, facecolor='r')
+        plt.fill_between(range(0, 5000)[::spacing], (self.plot_av_ts + self.plot_std_ts)[::spacing],
+                         (self.plot_av_ts - self.plot_std_ts)[::spacing], alpha=0.3, facecolor='y')
+        plt.fill_between(range(0, 5000)[::spacing], (self.plot_av_cucb + self.plot_std_cucb)[::spacing],
+                         (self.plot_av_cucb - self.plot_std_cucb)[::spacing], alpha=0.3, facecolor='b')
+        plt.fill_between(range(0, 5000)[::spacing], (self.plot_av_cts + self.plot_std_cts)[::spacing],
+                         (self.plot_av_cts - self.plot_std_cts)[::spacing], alpha=0.3, facecolor='k')
+        # Plot
         plt.legend()
         plt.grid(True, axis='y')
         plt.xlabel('Number of Rounds')
         plt.ylabel('Cumulative Regret')
-
+        # Save
+        pathlib.Path('data/plots/').mkdir(parents=False, exist_ok=True)
         plt.savefig(f'data/plots/{self.exp_name}_p{self.p:.2f}_pad{self.padval:.2f}.pdf')
 
-def parse_arguments():
 
+def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp', dest='exp', type=str, default='genre', help="Experiment to run (genre, movie, book)")
-    parser.add_argument('--num_iterations', dest='num_iterations', type=int, default=20, help="Number of iterations of each run")
+    parser.add_argument('--num_iterations', dest='num_iterations', type=int, default=20,
+                        help="Number of iterations of each run")
     parser.add_argument('--T', dest='T', type=int, default=5000, help="Number of rounds")
     parser.add_argument('--p', dest='p', type=float, default=0.0, help="Fraction of table entries to mask")
     parser.add_argument('--padval', dest='padval', type=float, default=0.0, help="Padding value for table entries")
-
     return parser.parse_args()
+
 
 def main(args):
     args = parse_arguments()
-
     bandit_obj = algs(args.exp, p=args.p, padval=args.padval)
     bandit_obj.edit_data()
     bandit_obj.run(args.num_iterations, args.T)
     bandit_obj.plot()
+
 
 if __name__ == '__main__':
     main(sys.argv)

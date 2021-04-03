@@ -8,7 +8,7 @@
 ## Requirements
 All required modules are listed in <tt>requirements.txt</tt> and can be installed by:
 ````
-pip3 -U -r requirements.txt
+pip3 install -U -r requirements.txt
 ````
 ### 1. Download the datasets
 The datasets can be downloaded as follows:
@@ -22,7 +22,7 @@ This will download the [MovieLens 1M Dataset](https://grouplens.org/datasets/mov
 
 Pre-processing as described in the paper can be done with <tt>preproc/preproc.py</tt>. As an example:
 ```
-python preproc/preproc.py --movielens --train_test_ratio=0.5
+python preproc.py --movielens --train_test_ratio=0.5
 ```
 will process the MovieLens Dataset with a train-test split of 50:50. For a different dataset, any preprocessing steps may be included in this file.
 
@@ -32,10 +32,13 @@ Bandit algorithms - UCB, TS, C-UCB, C-TS - can be run from <tt>c_algos.py</tt>. 
 ```
 exp             :   Experiment to run (genre, movie, book)
 num_iterations  :   Number of iterations of each run
-T               :   Number of rounds
+T               :   Number of rounds (horizon)
 p               :   Fraction of conditional expectation table entries to mask
 pad_val         :   Padding value for the conditional expectation table entries
 ```
+Example:<br>
+`python3 c_algos.py --exp genre --num_iterations 1 --T 5000 --p 0.1 --padval 0.1`
+
 The script saves plots of the generated results in a folder <tt>plot_arrays</tt>.
 
 ## Results
