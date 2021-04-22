@@ -103,7 +103,7 @@ def genre_train_test_split(train_test_ratio=0.5):
     for i in range(len(reverse_sorted_users)):
         cnt += reverse_sorted_users[i][0]
         users_for_train.append(reverse_sorted_users[i][1])
-        if cnt > train_test_ratio * 1e6:
+        if cnt > train_test_ratio * len(data):
             break
 
     train_data = data[data['UserID'].isin(users_for_train)]
