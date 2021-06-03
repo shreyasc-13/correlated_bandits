@@ -29,7 +29,7 @@ class algs:
     def generate_sample(self, arm):
 
         d = self.test_data[self.test_data[f'{self.exp_name}_col'] == arm]
-        reward = d['rating'].sample(n=1, replace = True)
+        reward = d['Rating'].sample(n=1, replace = True)
 
         return reward
 
